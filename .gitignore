@@ -62,3 +62,7 @@ out/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+# PostgreSQL
+postgres/
+postgresql/
+pgdata/
