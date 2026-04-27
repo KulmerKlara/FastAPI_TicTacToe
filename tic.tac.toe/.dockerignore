@@ -1,0 +1,11 @@
+.venv
+__pycache__
+.pytest_cache
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.vscode
+.env
+postgres_data
