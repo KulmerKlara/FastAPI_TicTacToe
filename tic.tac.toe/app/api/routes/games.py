@@ -134,6 +134,46 @@ async def make_move(
     await db.refresh(game)
     return game
 
+@router.get("/{game_id}/export", response_class=Response)
+async def export_game_xml(
+    game_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    import xml.etree.ElementTree as ET
+ 
+    game = await _get_game_for_user(db, game_id, current_user.id)
+    if not game:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+ 
+    root = ET.Element("game", id=str(game.id))
+ 
+    ET.SubElement(root, "status").text = game.status
+    ET.SubElement(root, "next_player").text = game.next_player
+    ET.SubElement(root, "board").text = game.board
+    ET.SubElement(root, "created_at").text = game.created_at.isoformat()
+    ET.SubElement(root, "updated_at").text = game.updated_at.isoformat()
+ 
+    players_el = ET.SubElement(root, "players")
+    ET.SubElement(players_el, "player_x_id").text = str(game.player_x_id)
+    ET.SubElement(players_el, "player_o_id").text = str(game.player_o_id) if game.player_o_id else ""
+ 
+    moves_el = ET.SubElement(root, "moves")
+    for m in game.moves:
+        move_el = ET.SubElement(moves_el, "move")
+        ET.SubElement(move_el, "player").text = m["player"]
+        ET.SubElement(move_el, "position").text = str(m["position"])
+        ET.SubElement(move_el, "at").text = m["at"]
+ 
+    xml_bytes = ET.tostring(root, encoding="utf-8", xml_declaration=True)
+ 
+    return Response(
+        content=xml_bytes,
+        media_type="application/xml",
+        headers={
+            "Content-Disposition": f'attachment; filename="game_{game_id}.xml"'
+        },
+    )
 
 @router.delete("/{game_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_game(
